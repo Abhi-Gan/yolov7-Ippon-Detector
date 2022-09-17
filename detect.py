@@ -115,16 +115,27 @@ def detect(save_img=False):
                     n = (det[:, -1] == c).sum()  # detections per class
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
 
+                    
+                # does image overall contain an ippon?
+                contains_ippon = false
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
+                    # if object is human and more flat than tall then it's probably ippon
+                    # humans have class 0 = person?
+                    # want to compare actual pixels (not ratio of entire image)
+                    is_ippon = (xyxy[2] - xyxy[0]) > (xyxy[3] - xyxy[1])
+                    contains_ippon = contains_ippon or is_ippon
+                    
                     if save_txt:  # Write to file
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
                         line = (cls, *xywh, conf) if opt.save_conf else (cls, *xywh)  # label format
                         with open(txt_path + '.txt', 'a') as f:
-                            f.write(('%g ' * len(line)).rstrip() % line + '\n')
+                            f.write(('%g ' * len(line)).rstrip() % line + f" {is_ippon}\n")
 
                     if save_img or view_img:  # Add bbox to image
                         label = f'{names[int(cls)]} {conf:.2f}'
+                        if(is_ippon):
+                            label += ' ippon'
                         plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
 
             # Print time (inference + NMS)
